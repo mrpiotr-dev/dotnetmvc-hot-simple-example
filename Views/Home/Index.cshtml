@@ -1,0 +1,57 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+<h1>Handsontable</h1>
+<div id="example"></div>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const container = document.getElementById('example');
+    const hot = new Handsontable(container, {
+      dataSchema: { id: null, firstName: null, lastName: null, email: null, active: null },
+      colHeaders: true,
+      fillHandle: false,
+      columns: [
+        { data: 'firstName', title: 'First name', },
+        { data: 'lastName', title: 'Last name', },
+        { data: 'email', title: 'E-mail', },
+        { data: 'active', type: 'checkbox', title: 'Is active', },
+      ],
+      afterChange(changes, source) {
+        if (source === 'loadData') {
+          return;
+        }
+
+        const usersToUpdate = new Map();
+
+        changes.forEach((change) => {
+          const [visualRow, property, oldValue, newValue] = change;
+          const { id } = this.getSourceDataAtRow(this.toPhysicalRow(visualRow));
+          
+          let user = usersToUpdate.get(id);
+
+          if (!user) {
+            user = {};
+            usersToUpdate.set(id, user);
+          }
+
+          user[property] = newValue;
+        });
+
+        if (usersToUpdate.size < 1) {
+          return;
+        }
+
+        usersToUpdate.forEach((user, id) => {
+          axios.put(`@Url.RouteUrl(new{ action="UpdateUser", controller="Home"})/${id}`, user);
+        })
+      }
+    });
+
+    axios.get('@Url.RouteUrl(new{ action="GetUsers", controller="Home"})')
+      .then(function (response) {
+        const { data } = response;
+
+        hot.loadData(data);
+      })
+  });
+</script>
